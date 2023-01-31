@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.7.0/dist/tf.min.js"></script>
+
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      const wordToNumber = {
+        the: 1,
+        word: 2,
+        is: 3,
+      };
+
+      const numberToWord = {
+        1: "the",
+        2: "word",
+        3: "is",
+      };
+
+      const encoding = {
+        encode(text) {
+          // split the text into words
+          const words = text.split(" ");
+
+          // encode each word into a number
+          const encoded = words.map((word) => wordToNumber[word]);
+
+          return encoded;
+        },
+        decode(encoded) {
+          // decode each number into a word
+          const words = encoded.map((number) => numberToWord[number]);
+
+          // join the words into a text
+          const text = words.join(" ");
+
+          return text;
+        },
+      };
+
+      async function loadModel() {
+        try {
+          // Load the model JSON file
+          const model = await tf.loadLayersModel("https://raw.githubusercontent.com/batatar36/person-property/main/310123%20json%20deneme%204/model.json");
+          //const inputShape = [1, 64];
+          //model.compile({loss: 'meanSquaredError', optimizer: 'adam'});
+
+
+          console.log("Model Loaded Successfully!");
+          console.log(model.summary());
+          console.log(model.inputs[0].shape);
+
+          //const reshapedTensor = tensor.reshape([1, 64]);
+          //model.predict(reshapedTensor);
+
+          return model;
+        } catch (error) {
+          console.error("Error while loading the model: ", error);
+        }
+      }
+
+      const modelPromise = loadModel();
+
+      async function generateText(model, seed) {
+        try {
+          let text = seed;
+          
+          const temperature = 0.5;
+
+          for (let i = 0; i < 20; i++) {
+            const encoded = encoding.encode(text);
+
+            const padded = tf.tensor2d(
+              Array(64 - encoded.length)
+                .fill(0)
+                .concat([encoded]),
+              [1, 64],
+            );
+            const input = padded.reshape([1, 64, 300]);
+
+            const prediction = model.predict(input).arraySync()[0];
+
+            const nextWord = sample(prediction, temperature);
+
+            text += " " + nextWord;
+          }
+
+          console.log(text);
+        } catch (error) {
+          console.error("Error while generating text: ", error);
+        }
+      }
+
+      modelPromise.then((model) => {
+        generateText(model, "The word is");
+      });
+    </script>
+  </body>
+</html>
